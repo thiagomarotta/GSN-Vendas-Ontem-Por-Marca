@@ -1,29 +1,26 @@
 function createOrResetBlingDetalhesVendasSheet() {
   const sheetName = "Detalhes Vendas";
   const headersConfig = [
-    { name: "Venda ID", width: 90, align: "left", format: "0" },                   // Equivalente ao campo "ID"
-    { name: "Numero", width: 80, align: "left", format: "0" },                     // Mesmo de "Numero"
-    { name: "Numero Loja", width: 145, align: "left", format: "0" },               // Igual ao "Numero Loja"
-    { name: "Data", width: 90, align: "center", format: "dd/MM/yyyy" },            // Igual
-    { name: "Total", width: 120, align: "right", format: "R$ #,##0.00" },          // Igual
-    { name: "Total Produtos", width: 120, align: "right", format: "R$ #,##0.00" }, // Igual
-    { name: "Contato Nome", width: 300, align: "left" },                           // Igual
-    // { name: "Situação ID", width: 100, align: "center", format: "0" },             // Igual
-    // { name: "Loja ID", width: 80, align: "center", format: "0" },                  // Igual
-    // { name: "Item ID", width: 120, align: "left" },
+    { name: "Venda ID", width: 90, align: "left", format: "0" },
+    { name: "Numero", width: 80, align: "left", format: "0" },
+    { name: "Numero Loja", width: 145, align: "left", format: "0" },
+    { name: "Data", width: 90, align: "center", format: "dd/MM/yyyy" },
+    { name: "Total Produtos", width: 120, align: "right", format: "R$ #,##0.00" },
+    { name: "Total", width: 120, align: "right", format: "R$ #,##0.00" },
+    { name: "Contato Nome", width: 300, align: "left" },
     { name: "Item Produto ID", width: 130, align: "left" },
-    // { name: "Item Código", width: 120, align: "left" },
     { name: "Item Quantidade", width: 130, align: "right", format: "0" },
     { name: "Item Valor", width: 100, align: "right", format: "R$ #,##0.00" },
-    
+    { name: "Situação", width: 175, align: "center" },
+    { name: "Loja", width: 175, align: "center" }
   ];
   const sheet = initializeSheet(sheetName, false, headersConfig, { autoFilter: true, frozenRows: 1 });
   return sheet;
 }
 
-
 function importSalesDetails() {
-  const vendasSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vendas");
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const vendasSheet = ss.getSheetByName("Vendas");
   if (!vendasSheet) {
     Logger.log(`❌ Planilha "Vendas" não encontrada.`);
     return;
@@ -31,7 +28,7 @@ function importSalesDetails() {
 
   const detalhesSheet = createOrResetBlingDetalhesVendasSheet();
 
-  const prefix = "gsn"; // Ou 'metabolik'
+  const prefix = "gsn";
   const token = ensureValidBlingToken({ prefix, ...BLING_CONFIG[prefix] });
   const baseUrl = "https://api.bling.com.br/Api/v3/pedidos/vendas/";
 
@@ -44,7 +41,7 @@ function importSalesDetails() {
   const idRange = vendasSheet.getRange(2, 1, lastRow - 1, 1); // IDs na Coluna A
   const ids = idRange.getValues().flat().filter(id => id);
 
-  let row = 2; // Começar na linha 2 da nova planilha
+  let row = 2;
 
   ids.forEach((idVenda, index) => {
     let attempts = 0;
@@ -89,21 +86,26 @@ function importSalesDetails() {
           break;
         }
 
+        const situacaoTexto = SITUACAO_ENUM[venda.situacao?.id] || venda.situacao?.id || "";
+        const lojaTexto = LOJA_ENUM[venda.loja?.id] || venda.loja?.id || "";
+
         const vendaInfo = [
           venda.id || "",
           venda.numero || "",
           venda.numeroLoja || "",
           venda.data || "",
-          venda.total || 0,
           venda.totalProdutos || 0,
-          venda.contato?.nome || ""
+          venda.total || 0,
+          capitalizeName(venda.contato?.nome) || ""
         ];
 
         const outputData = venda.itens.map(item => ([
           ...vendaInfo,
-          item.produto?.id || "",    // Item Produto ID (nova posição correta)
-          item.quantidade || 0,      // Item Quantidade
-          item.valor || 0            // Item Valor
+          item.produto?.id || "",
+          item.quantidade || 0,
+          item.valor || 0,
+          situacaoTexto,
+          lojaTexto
         ]));
 
         detalhesSheet.getRange(row, 1, outputData.length, outputData[0].length).setValues(outputData);

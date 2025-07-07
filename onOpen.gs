@@ -4,22 +4,18 @@
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu("GSN")
-    .addItem("- 🔑 Autenticação Bling", "openAuthBlingAllAccounts")
-    .addItem("1. Obter vendas de ontem", "importBlingSalesYesterday")
-    .addItem("2. Obter detalhes de vendas do Bling", "importSalesDetails")
-    .addItem("3. Obter produtos das vendas do Bling", "importSalesProducts")
-    .addItem("4. Sumarize as vendas por marca", "importVendasOntemPorMarca")
-    .addItem("- Load all data", "load")
 
-    // .addItem("- Obter produtos do Bling", "importBlingProducts")
-    // .addItem("- Obter dados complementares de produtos do Bling", "importAdditionalProductInformation")
-    
+    .addItem("- 🔑 Autenticação Bling", "openAuthBlingAllAccounts")
+
+    .addItem("1. Obter vendas de ontem e seus detalhes", "importDetalhesVenda2")
+    .addItem("2. Sumarizar vendas por produto", "importResumoProdutos")
+    .addItem("3. Sumarizar vendas por marca", "importResumoMarcas")
+
     .addToUi();
 }
 
 function load() {
-  importBlingSalesYesterday();
-  importSalesDetails();
-  importSalesProducts();
-  importVendasOntemPorMarca();
+  importDetalhesVenda2();
+  importResumoProdutos();
+  importResumoMarcas();
 }
