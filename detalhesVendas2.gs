@@ -15,7 +15,7 @@ function createOrResetDetalhesVenda2Sheet() {
     { name: "Item Custo", width: 110, align: "right", format: formatContabilidadeBR },
     { name: "Valor Total", width: 120, align: "right", format: formatContabilidadeBR },
     { name: "Custo Total", width: 120, align: "right", format: formatContabilidadeBR },
-    { name: "Markup", width: 120, align: "center", format: "0.00" }, // ← ADICIONADO AQUI
+    { name: "Markup", width: 120, align: "center", format: "0.00" },
     { name: "Situação", width: 170, align: "center" },
     { name: "Loja", width: 150, align: "center" },
     { name: "Estoque Atual", width: 130, align: "right", format: "0" }
@@ -30,22 +30,31 @@ function createOrResetDetalhesVenda2Sheet() {
 }
 
 function importDetalhesVenda2() {
-  const detalhesSheet = createOrResetDetalhesVenda2Sheet();
-  const token = ensureValidBlingToken({ prefix: "gsn", ...BLING_CONFIG["gsn"] });
+  const sheet = createOrResetDetalhesVenda2Sheet();
+  const empresas = [
+    { prefix: "gsn", configKey: "gsn" },
+    { prefix: "metabolik", configKey: "metabolik" }
+  ];
+
+  for (const empresa of empresas) {
+    importarVendasPorEmpresa(empresa.prefix, BLING_CONFIG[empresa.configKey], sheet);
+  }
+}
+
+function importarVendasPorEmpresa(prefix, config, detalhesSheet) {
+  const token = ensureValidBlingToken({ prefix, ...config });
   const baseVendaUrl = "https://api.bling.com.br/Api/v3/pedidos/vendas/";
   const baseProdutoUrl = "https://api.bling.com.br/Api/v3/produtos/";
   const maxRetries = 5;
   const limite = 100;
 
-  // Define data de ontem
   const timezone = Session.getScriptTimeZone();
   const now = new Date();
   const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
   const dataStr = Utilities.formatDate(yesterday, timezone, "yyyy-MM-dd");
 
-  let row = 2;
+  let row = detalhesSheet.getLastRow() + 1;
   let pagina = 1;
-  const startTime = new Date();
 
   while (true) {
     const url = `${baseVendaUrl}?limit=${limite}&page=${pagina}&dataInicial=${dataStr}&dataFinal=${dataStr}`;
@@ -89,7 +98,6 @@ function importDetalhesVenda2() {
       let vendaDetalhada;
       let attempts = 0;
 
-      // Retry para venda detalhada
       while (attempts < maxRetries) {
         try {
           const res = UrlFetchApp.fetch(`${baseVendaUrl}${vendaId}`, {
@@ -131,18 +139,17 @@ function importDetalhesVenda2() {
         vendaDetalhada.numero || "",
         vendaDetalhada.numeroLoja || "",
         vendaDetalhada.data || "",
-        // vendaDetalhada.totalProdutos || 0,
         vendaDetalhada.total || 0,
         capitalizeName(vendaDetalhada.contato?.nome || "")
       ];
 
-      const situacao = SITUACAO_ENUM[vendaDetalhada.situacao?.id] || "Desconhecida";
-      const loja = LOJA_ENUM[vendaDetalhada.loja?.id] || "Desconhecida";
+      const situacao = SITUACAO_ENUM[vendaDetalhada.situacao?.id] || vendaDetalhada.situacao?.id;
+      const loja = LOJA_ENUM[vendaDetalhada.loja?.id] || vendaDetalhada.loja?.id;
+      // const situacao = SITUACAO_ENUM[vendaDetalhada.situacao?.id] || "Desconhecida";
+      // const loja = LOJA_ENUM[vendaDetalhada.loja?.id] || "Desconhecida";
       const itens = vendaDetalhada.itens || [];
 
-      const totalProdutosBruto = itens.reduce((sum, item) =>
-        sum + (item.valor || 0) * (item.quantidade || 0), 0);
-
+      const totalProdutosBruto = itens.reduce((sum, item) => sum + (item.valor || 0) * (item.quantidade || 0), 0);
       const outputData = [];
 
       for (let item of itens) {
@@ -199,7 +206,6 @@ function importDetalhesVenda2() {
         const custoTotal = custo * quantidade;
         const markup = custoTotal > 0 ? (valorTotalAjustado / custoTotal) : "";
 
-
         outputData.push([
           ...vendaInfo,
           prodId,
@@ -232,13 +238,4 @@ function importDetalhesVenda2() {
 
     pagina++;
   }
-
-  const endTime = new Date();
-  const durationMs = endTime - startTime;
-  const hours = Math.floor(durationMs / (1000 * 60 * 60));
-  const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
-
-  const durationStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  // SpreadsheetApp.getUi().alert(`✅ Importação de Detalhes Venda #2 finalizada.\n⏱ Tempo total: ${durationStr}`);
 }
