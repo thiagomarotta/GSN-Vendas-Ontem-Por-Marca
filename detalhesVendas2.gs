@@ -29,35 +29,78 @@ function createOrResetDetalhesVenda2Sheet() {
   return sheet;
 }
 
-function importDetalhesVenda2() {
+function promptImportarVendasPorData() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Instruções");
+  const ui = SpreadsheetApp.getUi();
+
+  if (!sheet) {
+    ui.alert("❌ Aba 'Instruções' não encontrada.");
+    return;
+  }
+
+  const dataInicialStr = sheet.getRange("F20").getDisplayValue().trim();
+  const dataFinalStr = sheet.getRange("F21").getDisplayValue().trim();
+
+  const parseDate = (str) => {
+    const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = str.match(regex);
+    if (!match) return null;
+    const [_, d, m, y] = match;
+    return new Date(`${y}-${m}-${d}T00:00:00`);
+  };
+
+  const dataInicio = parseDate(dataInicialStr);
+  const dataFim = parseDate(dataFinalStr);
+
+  if (!dataInicio || !dataFim) {
+    ui.alert("❌ Datas inválidas. Verifique o formato (DD/MM/AAAA) nas células F20 e F21 da aba Instruções.");
+    return;
+  }
+
+  if (dataFim < dataInicio) {
+    ui.alert("❌ A data final não pode ser anterior à data inicial.");
+    return;
+  }
+
+  ui.alert(`📅 Importando vendas de ${dataInicialStr} até ${dataFinalStr}...`);
+  importDetalhesVenda2(dataInicio, dataFim);
+}
+
+
+function importDetalhesVenda2(dataInicial, dataFinal) {
   const sheet = createOrResetDetalhesVenda2Sheet();
   const empresas = [
     { prefix: "gsn", configKey: "gsn" },
     { prefix: "metabolik", configKey: "metabolik" }
   ];
 
+  const timezone = Session.getScriptTimeZone();
+  const hoje = new Date();
+  const ontem = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 1);
+
+  const inicio = dataInicial || ontem;
+  const fim = dataFinal || ontem;
+
+  const dataInicialStr = Utilities.formatDate(inicio, timezone, "yyyy-MM-dd");
+  const dataFinalStr = Utilities.formatDate(fim, timezone, "yyyy-MM-dd");
+
   for (const empresa of empresas) {
-    importarVendasPorEmpresa(empresa.prefix, BLING_CONFIG[empresa.configKey], sheet);
+    importarVendasPorEmpresa(empresa.prefix, BLING_CONFIG[empresa.configKey], sheet, dataInicialStr, dataFinalStr);
   }
 }
 
-function importarVendasPorEmpresa(prefix, config, detalhesSheet) {
+function importarVendasPorEmpresa(prefix, config, detalhesSheet, dataInicialStr, dataFinalStr) {
   const token = ensureValidBlingToken({ prefix, ...config });
   const baseVendaUrl = "https://api.bling.com.br/Api/v3/pedidos/vendas/";
   const baseProdutoUrl = "https://api.bling.com.br/Api/v3/produtos/";
   const maxRetries = 5;
   const limite = 100;
 
-  const timezone = Session.getScriptTimeZone();
-  const now = new Date();
-  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-  const dataStr = Utilities.formatDate(yesterday, timezone, "yyyy-MM-dd");
-
   let row = detalhesSheet.getLastRow() + 1;
   let pagina = 1;
 
   while (true) {
-    const url = `${baseVendaUrl}?limit=${limite}&page=${pagina}&dataInicial=${dataStr}&dataFinal=${dataStr}`;
+    const url = `${baseVendaUrl}?limit=${limite}&page=${pagina}&dataInicial=${dataInicialStr}&dataFinal=${dataFinalStr}`;
     let response, status, json;
 
     try {
@@ -69,6 +112,7 @@ function importarVendasPorEmpresa(prefix, config, detalhesSheet) {
         },
         muteHttpExceptions: true
       });
+
       status = response.getResponseCode();
 
       if (status === 429) {
@@ -145,8 +189,6 @@ function importarVendasPorEmpresa(prefix, config, detalhesSheet) {
 
       const situacao = SITUACAO_ENUM[vendaDetalhada.situacao?.id] || vendaDetalhada.situacao?.id;
       const loja = LOJA_ENUM[vendaDetalhada.loja?.id] || vendaDetalhada.loja?.id;
-      // const situacao = SITUACAO_ENUM[vendaDetalhada.situacao?.id] || "Desconhecida";
-      // const loja = LOJA_ENUM[vendaDetalhada.loja?.id] || "Desconhecida";
       const itens = vendaDetalhada.itens || [];
 
       const totalProdutosBruto = itens.reduce((sum, item) => sum + (item.valor || 0) * (item.quantidade || 0), 0);

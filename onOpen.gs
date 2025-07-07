@@ -10,6 +10,7 @@ function onOpen() {
     .addItem("1. Obter vendas de ontem e seus detalhes", "importDetalhesVenda2")
     .addItem("2. Sumarizar vendas por produto", "importResumoProdutos")
     .addItem("3. Sumarizar vendas por marca", "importResumoMarcas")
+    // .addItem("4. Obter vendas por data específica", "promptImportarVendasPorData")
 
     .addToUi();
 }
