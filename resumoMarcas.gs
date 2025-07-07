@@ -2,8 +2,8 @@ function createOrResetResumoMarcasSheet() {
   const sheetName = "Marcas";
   const headersConfig = [
     { name: "Marca", width: 200, align: "left" },
-    { name: "Receita Total", width: 150, align: "right", format: "R$ #,##0.00" },
-    { name: "Custo Total", width: 150, align: "right", format: "R$ #,##0.00" },
+    { name: "Receita Total", width: 150, align: "right", format: formatContabilidadeBR },
+    { name: "Custo Total", width: 150, align: "right", format: formatContabilidadeBR },
     { name: "Markup", width: 100, align: "center", format: "0.00" }
   ];
 

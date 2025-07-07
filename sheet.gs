@@ -1,3 +1,6 @@
+// Formatos
+const formatContabilidadeBR = '_([$R$ -416]* #,##0.00_);_([$R$ -416]* \\(#,##0.00\\);_([$R$ -416]* "-"??_);_(@_)';
+
 function initializeSheet(sheetName, append, headersConfig, options = {}) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(sheetName);

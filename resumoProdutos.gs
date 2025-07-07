@@ -1,12 +1,16 @@
 function createOrResetResumoProdutosSheet() {
   const sheetName = "Produtos";
+
+
   const headersConfig = [
     { name: "ID", width: 110, align: "left" },
     { name: "Produto", width: 450, align: "left" },
     { name: "Marca", width: 190, align: "left" },
     { name: "Vendas", width: 125, align: "center", format: "0" },
-    { name: "PDV", width: 120, align: "right", format: "R$ #,##0.00" },
-    { name: "PDC", width: 120, align: "right", format: "R$ #,##0.00" },
+    { name: "PDV Total", width: 120, align: "right", format: formatContabilidadeBR },
+    { name: "PDC Total", width: 120, align: "right", format: formatContabilidadeBR },
+    { name: "PDV Médio", width: 120, align: "right", format: formatContabilidadeBR },
+    { name: "PDC Médio", width: 120, align: "right", format: formatContabilidadeBR },
     { name: "Markup", width: 125, align: "center", format: "0.00" },
     { name: "Estoque Atual", width: 150, align: "center", format: "0" }
   ];
@@ -16,6 +20,7 @@ function createOrResetResumoProdutosSheet() {
     frozenRows: 1
   });
 }
+
 
 function importResumoProdutos() {
   const detalhesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vendas");
@@ -62,7 +67,6 @@ function importResumoProdutos() {
     item.totalValor += valorTotal;
     item.totalCusto += custoTotal;
 
-    // Salva o maior estoque visto até agora
     if (estoqueAtual > item.estoqueAtual) {
       item.estoqueAtual = estoqueAtual;
     }
@@ -76,6 +80,14 @@ function importResumoProdutos() {
       ? dados.totalValor / dados.totalCusto
       : '';
 
+    const pdvMedio = dados.totalQuantidade > 0
+      ? dados.totalValor / dados.totalQuantidade
+      : '';
+
+    const pdcMedio = dados.totalQuantidade > 0
+      ? dados.totalCusto / dados.totalQuantidade
+      : '';
+
     output.push([
       dados.produtoId,
       dados.produtoNome,
@@ -83,6 +95,8 @@ function importResumoProdutos() {
       dados.totalQuantidade,
       dados.totalValor,
       dados.totalCusto,
+      pdvMedio,
+      pdcMedio,
       markup,
       dados.estoqueAtual
     ]);
