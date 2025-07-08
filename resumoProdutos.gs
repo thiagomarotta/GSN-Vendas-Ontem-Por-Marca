@@ -1,9 +1,7 @@
 function createOrResetResumoProdutosSheet() {
   const sheetName = "Produtos";
 
-
   const headersConfig = [
-    { name: "ID", width: 110, align: "left" },
     { name: "Produto", width: 450, align: "left" },
     { name: "Marca", width: 190, align: "left" },
     { name: "Vendas", width: 125, align: "center", format: "0" },
@@ -20,7 +18,6 @@ function createOrResetResumoProdutosSheet() {
     frozenRows: 1
   });
 }
-
 
 function importResumoProdutos() {
   const detalhesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vendas");
@@ -40,19 +37,19 @@ function importResumoProdutos() {
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
 
-    const produtoId = row[6]; // "Item Produto ID"
     const produtoNome = row[7]; // "Produto"
-    const marca = row[8]; // "Marca"
+    const marca = row[8];       // "Marca"
     const quantidade = Number(row[9]) || 0;
     const valorTotal = Number(row[12]) || 0; // "Valor Total"
     const custoTotal = Number(row[13]) || 0; // "Custo Total"
     const estoqueAtual = Number(row[17]) || 0;
 
-    if (!produtoId) continue;
+    if (!produtoNome) continue;
 
-    if (!resumoMap.has(produtoId)) {
-      resumoMap.set(produtoId, {
-        produtoId,
+    const chave = `${produtoNome}||${marca}`;
+
+    if (!resumoMap.has(chave)) {
+      resumoMap.set(chave, {
         produtoNome,
         marca,
         totalQuantidade: 0,
@@ -62,7 +59,7 @@ function importResumoProdutos() {
       });
     }
 
-    const item = resumoMap.get(produtoId);
+    const item = resumoMap.get(chave);
     item.totalQuantidade += quantidade;
     item.totalValor += valorTotal;
     item.totalCusto += custoTotal;
@@ -75,7 +72,7 @@ function importResumoProdutos() {
   const resumoSheet = createOrResetResumoProdutosSheet();
   const output = [];
 
-  for (const [id, dados] of resumoMap) {
+  for (const [_, dados] of resumoMap) {
     const markup = dados.totalCusto > 0
       ? dados.totalValor / dados.totalCusto
       : '';
@@ -89,7 +86,6 @@ function importResumoProdutos() {
       : '';
 
     output.push([
-      dados.produtoId,
       dados.produtoNome,
       dados.marca,
       dados.totalQuantidade,
@@ -102,9 +98,12 @@ function importResumoProdutos() {
     ]);
   }
 
+  // Ordena do maior para o menor PDV Total (coluna 4 = índice 3)
+  output.sort((a, b) => b[3] - a[3]);
+
   if (output.length > 0) {
     resumoSheet.getRange(2, 1, output.length, output[0].length).setValues(output);
-    Logger.log(`✅ Resumo gerado com ${output.length} produtos.`);
+    Logger.log(`✅ Resumo gerado com ${output.length} produtos únicos.`);
   } else {
     Logger.log("⚠️ Nenhum dado encontrado para gerar resumo.");
   }
