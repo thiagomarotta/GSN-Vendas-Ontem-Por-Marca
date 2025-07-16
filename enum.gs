@@ -24,3 +24,12 @@ const LOJA_ENUM = {
   // Metabolik:
   205282310: "Metabolik Shoppub"
 };
+
+const statusPagos = [
+  "Em Andamento",
+  "Atendido",
+  "Entregue Transportadora",
+  "Verificado",
+  "Tratativa SAC",
+  "Retirado Pessoalmente"
+];

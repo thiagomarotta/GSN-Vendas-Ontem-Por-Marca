@@ -38,8 +38,8 @@ function promptImportarVendasPorData() {
     return;
   }
 
-  const dataInicialStr = sheet.getRange("F20").getDisplayValue().trim();
-  const dataFinalStr = sheet.getRange("F21").getDisplayValue().trim();
+  const dataInicialStr = sheet.getRange("E12").getDisplayValue().trim();
+  const dataFinalStr = sheet.getRange("E12").getDisplayValue().trim();
 
   const parseDate = (str) => {
     const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
@@ -62,7 +62,7 @@ function promptImportarVendasPorData() {
     return;
   }
 
-  ui.alert(`📅 Importando vendas de ${dataInicialStr} até ${dataFinalStr}...`);
+  ui.alert(`📅 Importando vendas de ${dataInicialStr}...`);
   importDetalhesVenda2(dataInicio, dataFim);
 }
 

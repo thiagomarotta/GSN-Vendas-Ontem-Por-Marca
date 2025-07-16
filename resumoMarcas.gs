@@ -14,11 +14,17 @@ function createOrResetResumoMarcasSheet() {
 }
 
 function importResumoMarcas() {
-  const detalhesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vendas");
-  if (!detalhesSheet) {
-    Logger.log("❌ Planilha 'Detalhes Venda #2' não encontrada.");
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const instrucoesSheet = ss.getSheetByName("Instruções");
+  const detalhesSheet = ss.getSheetByName("Vendas");
+
+  if (!instrucoesSheet || !detalhesSheet) {
+    Logger.log("❌ Planilha 'Instruções' ou 'Vendas' não encontrada.");
     return;
   }
+
+  const filtro = instrucoesSheet.getRange("F2").getDisplayValue().trim();
+  const somentePagas = filtro === "Somente compras pagas";
 
   const data = detalhesSheet.getDataRange().getValues();
   if (data.length <= 1) {
@@ -27,9 +33,17 @@ function importResumoMarcas() {
   }
 
   const resumoMap = new Map();
+  let receitaTotalGeral = 0;
+  let custoTotalGeral = 0;
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
+
+    const situacao = (row[15] || "").toString().trim(); // Coluna "Situação"
+    if (somentePagas && !statusPagos.includes(situacao)) {
+      continue;
+    }
+
     const marca = row[8] || "Sem Marca";
     const valorTotal = Number(row[12]) || 0;
     const custoTotal = Number(row[13]) || 0;
@@ -45,6 +59,9 @@ function importResumoMarcas() {
     const item = resumoMap.get(marca);
     item.totalReceita += valorTotal;
     item.totalCusto += custoTotal;
+
+    receitaTotalGeral += valorTotal;
+    custoTotalGeral += custoTotal;
   }
 
   const resumoSheet = createOrResetResumoMarcasSheet();
@@ -65,9 +82,20 @@ function importResumoMarcas() {
 
   output.sort((a, b) => b[1] - a[1]); // ordena por receita decrescente
 
+  // Adiciona linha de TOTAL
+  const markupGeral = custoTotalGeral > 0 ? receitaTotalGeral / custoTotalGeral : "";
+  const totalRow = ["TOTAL", receitaTotalGeral, custoTotalGeral, markupGeral];
+  output.push(totalRow);
+
   if (output.length > 0) {
-    resumoSheet.getRange(2, 1, output.length, output[0].length).setValues(output);
-    Logger.log(`✅ Resumo de marcas gerado com ${output.length} marcas.`);
+    const range = resumoSheet.getRange(2, 1, output.length, output[0].length);
+    range.setValues(output);
+
+    // Aplica negrito na última linha (TOTAL)
+    const totalRange = resumoSheet.getRange(output.length + 1, 1, 1, output[0].length);
+    totalRange.setFontWeight("bold");
+
+    Logger.log(`✅ Resumo de marcas gerado com ${output.length - 1} marcas + TOTAL (Filtro: ${filtro || "Nenhum"}).`);
   } else {
     Logger.log("⚠️ Nenhum dado encontrado para gerar o resumo de marcas.");
   }

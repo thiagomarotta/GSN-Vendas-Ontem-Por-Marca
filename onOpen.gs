@@ -7,16 +7,19 @@ function onOpen() {
 
     .addItem("- 🔑 Autenticação Bling", "openAuthBlingAllAccounts")
 
-    .addItem("1. Obter vendas de ontem e seus detalhes", "importDetalhesVenda2")
-    .addItem("2. Sumarizar vendas por produto", "importResumoProdutos")
-    .addItem("3. Sumarizar vendas por marca", "importResumoMarcas")
-    // .addItem("4. Obter vendas por data específica", "promptImportarVendasPorData")
-
+    .addItem("1. Obter vendas de ontem", "load")
+    .addItem("2. Obter vendas por data específica", "load2")
     .addToUi();
 }
 
 function load() {
   importDetalhesVenda2();
+  importResumoProdutos();
+  importResumoMarcas();
+}
+
+function load2() {
+  promptImportarVendasPorData();
   importResumoProdutos();
   importResumoMarcas();
 }

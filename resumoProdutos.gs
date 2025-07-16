@@ -20,11 +20,17 @@ function createOrResetResumoProdutosSheet() {
 }
 
 function importResumoProdutos() {
-  const detalhesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vendas");
-  if (!detalhesSheet) {
-    Logger.log(`❌ Planilha "Vendas" não encontrada.`);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const instrucoesSheet = ss.getSheetByName("Instruções");
+  const detalhesSheet = ss.getSheetByName("Vendas");
+
+  if (!instrucoesSheet || !detalhesSheet) {
+    Logger.log(`❌ Planilha "Instruções" ou "Vendas" não encontrada.`);
     return;
   }
+
+  const filtro = instrucoesSheet.getRange("F2").getDisplayValue().trim();
+  const somentePagas = filtro === "Somente compras pagas";
 
   const data = detalhesSheet.getDataRange().getValues();
   if (data.length <= 1) {
@@ -36,6 +42,11 @@ function importResumoProdutos() {
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
+
+    const situacao = (row[15] || "").toString().trim(); // Coluna "Situação" (P = índice 15)
+    if (somentePagas && !statusPagos.includes(situacao)) {
+      continue; // pula vendas que não são consideradas pagas
+    }
 
     const produtoNome = row[7]; // "Produto"
     const marca = row[8];       // "Marca"
@@ -103,8 +114,8 @@ function importResumoProdutos() {
 
   if (output.length > 0) {
     resumoSheet.getRange(2, 1, output.length, output[0].length).setValues(output);
-    Logger.log(`✅ Resumo gerado com ${output.length} produtos únicos.`);
+    Logger.log(`✅ Resumo gerado com ${output.length} produtos únicos (Filtro: ${filtro || "Nenhum"}).`);
   } else {
-    Logger.log("⚠️ Nenhum dado encontrado para gerar resumo.");
+    Logger.log(`⚠️ Nenhum dado encontrado para gerar resumo (Filtro: ${filtro || "Nenhum"}).`);
   }
 }
