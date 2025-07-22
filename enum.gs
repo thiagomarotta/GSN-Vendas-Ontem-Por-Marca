@@ -21,6 +21,8 @@ const LOJA_ENUM = {
   205237235: "Raia Drogasil",
   205440918: "Shopee",
   205379135: "Lojinha Sertãozinho",
+  205488811: "iFood",
+  
   // Metabolik:
   205282310: "Metabolik Shoppub"
 };
